@@ -231,6 +231,9 @@ namespace Dune {
       std::deque<Intersection> send_cell_interior_overlap; // each intersection is a subgrid of overlap
       std::deque<Intersection> recv_cell_overlap_interior; // each intersection is a subgrid of overlap
 
+      // edges
+      array<YGrid,2> edge_all;
+
       // vertex (codim dim) data
       YGrid vertex_overlapfront;  // all our vertices are overlap and front
       YGrid vertex_overlap;       // subgrid containing only overlap

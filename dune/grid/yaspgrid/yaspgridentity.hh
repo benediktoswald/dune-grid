@@ -736,6 +736,138 @@ namespace Dune {
   };
 
 
+
+
+
+ // specialization for codim=dim-1 (vertex)
+  template<int dim, class GridImp>
+  class YaspEntity<dim-1,dim,GridImp>
+    :  public EntityDefaultImplementation <dim-1,dim,GridImp,YaspEntity>
+  {
+    enum { dimworld = GridImp::dimensionworld };
+
+    typedef typename GridImp::Traits::template Codim< 0 >::GeometryImpl GeometryImpl;
+
+  public:
+    typedef typename GridImp::ctype ctype;
+
+    typedef typename GridImp::YGridLevelIterator YGLI;
+    typedef typename GridImp::YGrid::Iterator I;
+
+    typedef typename GridImp::template Codim< 0 >::Geometry Geometry;
+    typedef typename GridImp::template Codim< 0 >::LocalGeometry LocalGeometry;
+
+    template <int cd>
+    struct Codim
+    {
+      typedef typename GridImp::template Codim<cd>::EntityPointer EntityPointer;
+    };
+
+    typedef typename GridImp::template Codim<0>::EntityPointer EntityPointer;
+    typedef typename GridImp::template Codim<0>::EntitySeed EntitySeed;
+    typedef typename GridImp::LevelIntersectionIterator IntersectionIterator;
+    typedef typename GridImp::LevelIntersectionIterator LevelIntersectionIterator;
+    typedef typename GridImp::LeafIntersectionIterator LeafIntersectionIterator;
+    typedef typename GridImp::HierarchicIterator HierarchicIterator;
+
+    //! define the type used for persisitent indices
+    typedef typename GridImp::PersistentIndexType PersistentIndexType;
+
+    //! define type used for coordinates in grid module
+    typedef typename GridImp::YGrid::iTupel iTupel;
+
+
+
+
+  public:
+    typedef typename GridImp::ctype ctype;
+
+    typedef typename GridImp::template Codim<codim>::Geometry Geometry;
+
+    //! level of this element
+    int level () const
+    {
+      return _g->level();
+      //DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    //! index is unique and consecutive per level and codim used for access to degrees of freedom
+    int index () const
+    {
+      return _it.superindex();
+      //DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    //! geometry of this entity
+    Geometry geometry () const
+    {
+      DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    //! return partition type attribute
+    PartitionType partitionType () const
+    {
+      DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    const GridImp * yaspgrid() const
+    {
+      DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    typedef typename GridImp::YGridLevelIterator YGLI;
+    typedef typename GridImp::YGrid::Iterator I;
+    YaspEntity (const GridImp* yg, const YGLI& g, const I& it)
+    {
+      DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    // IndexSets needs access to the private index methods
+    friend class Dune::YaspIndexSet<GridImp,true>;
+    friend class Dune::YaspIndexSet<GridImp,false>;
+    friend class Dune::YaspGlobalIdSet<GridImp>;
+    typedef typename GridImp::PersistentIndexType PersistentIndexType;
+
+    //! globally unique, persistent index
+    PersistentIndexType persistentIndex () const
+    {
+      DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    //! consecutive, codim-wise, level-wise index
+    int compressedIndex () const
+    {
+      DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    //! consecutive, codim-wise, level-wise index
+    int compressedLeafIndex () const
+    {
+      DUNE_THROW(GridError, "YaspEntity not implemented");
+    }
+
+    //! subentity compressed index (not available here)
+    int subCompressedIndex (int, unsigned int ) const
+    {
+      DUNE_THROW(NotImplemented,"subIndex for entities with codimension > 0 is not implemented");
+      return -1;
+    }
+
+    //! subentity compressed leaf index (not available here)
+    int subCompressedLeafIndex (int, unsigned int ) const
+    {
+      DUNE_THROW(NotImplemented,"subIndex for entities with codimension > 0 is not implemented");
+      return -1;
+    }
+  };
+
+
+
+
+
+
+
+
   // specialization for codim=dim (vertex)
   template<int dim, class GridImp>
   class YaspEntity<dim,dim,GridImp>

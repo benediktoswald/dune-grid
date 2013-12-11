@@ -37,8 +37,23 @@ namespace Dune {
     //! increment
     void increment()
     {
-      ++(this->_it);
+      if (this->_it == _end)
+        {
+          if (this->_grid_index == 1)
+            {
+              DUNE_THROW();
+            }
+          ++this->_grid_index;
+          _end = _grids[i].end();
+          this->_it = _grids[i].begin();
+        }
+      else
+        {
+          ++(this->_it);
+        }
     }
+
+    I _end;
   };
 
 }
