@@ -35,13 +35,13 @@ namespace Dune {
       YaspEntityPointer<codim,GridImp>(i) {}
 
     //! increment
-    void increment()
+    /*  void increment()
     {
       if (this->_it == _end)
         {
           if (this->_grid_index == 1)
             {
-              DUNE_THROW();
+              DUNE_THROW(GridError, "impossible to increment: grid_index == 1  ");
             }
           ++this->_grid_index;
           _end = _grids[i].end();
@@ -51,7 +51,7 @@ namespace Dune {
         {
           ++(this->_it);
         }
-    }
+        }*/
 
     I _end;
   };

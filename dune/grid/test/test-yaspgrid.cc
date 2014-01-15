@@ -122,11 +122,11 @@ int main (int argc , char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 #endif
 
-    check_yasp<1>();
-    check_yasp<1, Dune::TensorProductCoordinateContainer<double,1> >();
+//    check_yasp<1>();
+//    check_yasp<1, Dune::TensorProductCoordinateContainer<double,1> >();
     //check_yasp<1>(true);
 
-//     check_yasp<2>();
+     check_yasp<2>();
 //     check_yasp<2, Dune::TensorProductCoordinateContainer<double,2> >();
 //     //check_yasp<2>(true);
 //

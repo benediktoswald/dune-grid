@@ -232,7 +232,23 @@ namespace Dune {
       std::deque<Intersection> recv_cell_overlap_interior; // each intersection is a subgrid of overlap
 
       // edges
-      array<YGrid,2> edge_all;
+      array<YGrid, dim> edge_overlapfront;
+      array<YGrid, dim> edge_overlap;
+      array<YGrid, dim> edge_interiorborder;
+      array<YGrid, dim> edge_interior;
+
+      array<std::deque<Intersection>, dim> send_edge_overlapfront_overlapfront; // each intersection is a subgrid of overlapfront
+      array<std::deque<Intersection>, dim> recv_edge_overlapfront_overlapfront; // each intersection is a subgrid of overlapfront
+
+      array<std::deque<Intersection>, dim> send_edge_overlap_overlapfront; // each intersection is a subgrid of overlapfront
+      array<std::deque<Intersection>, dim> recv_edge_overlapfront_overlap; // each intersection is a subgrid of overlapfront
+
+      array<std::deque<Intersection>, dim> send_edge_interiorborder_interiorborder; // each intersection is a subgrid of overlapfront
+      array<std::deque<Intersection>, dim> recv_edge_interiorborder_interiorborder; // each intersection is a subgrid of overlapfront
+
+      array<std::deque<Intersection>, dim> send_edge_interiorborder_overlapfront; // each intersection is a subgrid of overlapfront
+      array<std::deque<Intersection>, dim> recv_edge_overlapfront_interiorborder; // each intersection is a subgrid of overlapfront
+
 
       // vertex (codim dim) data
       YGrid vertex_overlapfront;  // all our vertices are overlap and front
@@ -412,9 +428,101 @@ namespace Dune {
      intersections(g.cell_overlap,g.cell_overlap,g.send_cell_overlap_overlap,g.recv_cell_overlap_overlap);
      intersections(g.cell_interior,g.cell_overlap,g.send_cell_interior_overlap,g.recv_cell_overlap_interior);
 
-      // the shift for the vertex grids is zero, this also manages the size increase by 1
+
+     //build the edge grids
+     for(int j=0; j<dim; ++j)
+     {
+       // the shift for the edge grids is
+       for (int i=0; i<dim; i++)
+         r[i] = 0.0;
+       r[j] = 0.5; //edge grid with shift in j direction
+
+       // now the edge grid stored in this processor. All other edge grids are subgrids of this
+       iTupel o_edge_overlapfront;
+       iTupel s_edge_overlapfront;
+
+       for(int i=0; i<dim; ++i )
+         {
+           o_edge_overlapfront[i] = g.cell_overlap.origin(i);
+           s_edge_overlapfront[i] = g.cell_overlap.size(i)+1; // in any direction size n+1, but in j direction size n
+         }
+       s_edge_overlapfront[j] = g.cell_overlap.size(j); // in j direction size n
+
+       g.edge_overlapfront[j] = YGrid(o_edge_overlapfront, r, &g.coords, s_edge_overlapfront, n, s_edge_overlapfront);
+
+       // now edge overlap only (i.e. without front), is subgrid of overlapfront
+       iTupel o_edge_overlap;
+       iTupel s_edge_overlap;
+
+       for(int i=0; i<dim; ++i )
+         {
+           o_edge_overlap[i] = o_edge_overlapfront[i];
+           s_edge_overlap[i] = s_edge_overlapfront[i];
+           if(ovlp_low[i])
+             {
+               s_edge_overlap[i]--;
+               o_edge_overlap[i]++;
+             }
+           if(ovlp_up[i])
+             s_edge_overlap[i]--;
+         }
+
+       g.edge_overlap[j] = YGrid(o_edge_overlap, s_edge_overlap, g.edge_overlapfront[j]);
+
+       // now edge interior with border
+       iTupel o_edge_interiorborder;
+       iTupel s_edge_interiorborder;
+       for (int i=0; i<dim; i++)
+         {
+           o_edge_interiorborder[i] = o_edge_overlapfront[i];
+           s_edge_interiorborder[i] = g.edge_overlapfront.size(i);
+           if (ovlp_low[i])
+             {
+               s_edge_interiorborder[i] -= overlap;
+               o_edge_interiorborder[i] += overlap;
+             }
+           if (ovlp_up[i])
+             s_edge_interiorborder[i] -= overlap;
+         }
+
+       g.edge_interiorborder[j] = YGrid(o_edge_interiorborder,s_edge_interiorborder,g.edge_overlapfront[j]);
+
+       // now only edge interior
+       iTupel o_edge_interior(o_edge_interiorborder);
+       iTupel s_edge_interior(s_edge_interiorborder);
+       for (int i=0; i<dim; i++)
+         {
+           if (ovlp_low[i])
+             {
+               o_edge_interior[i] = o_edge_interior[i] + 1;
+               s_edge_interior[i] = s_edge_interior[i] - 1;
+             }
+           if (ovlp_up[i])
+             s_edge_interior[i] = s_edge_interior[i] - 1;
+         }
+
+       g.edge_interior[j] = YGrid(o_edge_interior, s_edge_interior, g.edge_overlapfront[j]);
+
+       // compute edge intersections
+       intersections(g.edge_overlapfront[j],g.edge_overlapfront[j],
+                     g.send_edge_overlapfront_overlapfront[j], g.recv_edge_overlapfront_overlapfront[j]);
+       intersections(g.edge_overlap[j], g.edge_overlapfront[j],
+                     g.send_edge_overlap_overlapfront[j], g.recv_edge_overlapfront_overlap[j]);
+       intersections(g.edge_interiorborder[j], g.edge_interiorborder[j],
+                     g.send_edge_interiorborder_interiorborder[j], g.recv_edge_interiorborder_interiorborder[j] );
+       intersections(g.edge_interiorborder[j], g.edge_overlapfront[j],
+                     g.send_edge_interiorborder_overlapfront[j], g.recv_edge_overlapfront_interiorborder[j]);
+
+     }
+
+
+
+
+
+      // the shift for the vertex grids is zero
       for (int i=0; i<dim; i++)
         r[i] = 0.0;
+
 
       // now the vertex grid stored in this processor. All other vertex grids are subgrids of this
       iTupel o_vertex_overlapfront;

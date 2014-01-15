@@ -739,10 +739,15 @@ namespace Dune {
 
 
 
- // specialization for codim=dim-1 (vertex)
-  template<int dim, class GridImp>
-  class YaspEntity<dim-1,dim,GridImp>
-    :  public EntityDefaultImplementation <dim-1,dim,GridImp,YaspEntity>
+
+
+
+
+
+ // specialization for codim=1 dim=2
+  template<class GridImp>
+  class YaspEntity<1, 2, GridImp>
+    :  public EntityDefaultImplementation <1, 2, GridImp, YaspEntity>
   {
     enum { dimworld = GridImp::dimensionworld };
 
@@ -770,7 +775,7 @@ namespace Dune {
     typedef typename GridImp::LeafIntersectionIterator LeafIntersectionIterator;
     typedef typename GridImp::HierarchicIterator HierarchicIterator;
 
-    //! define the type used for persisitent indices
+    //! define the type used for persistent indices
     typedef typename GridImp::PersistentIndexType PersistentIndexType;
 
     //! define type used for coordinates in grid module
@@ -780,43 +785,84 @@ namespace Dune {
 
 
   public:
-    typedef typename GridImp::ctype ctype;
 
-    typedef typename GridImp::template Codim<codim>::Geometry Geometry;
 
     //! level of this element
-    int level () const
-    {
-      return _g->level();
-      //DUNE_THROW(GridError, "YaspEntity not implemented");
-    }
+    int level () const { return _g->level(); }
 
     //! index is unique and consecutive per level and codim used for access to degrees of freedom
-    int index () const
-    {
-      return _it.superindex();
-      //DUNE_THROW(GridError, "YaspEntity not implemented");
+    int index () const { return _it.superindex(); }
+
+    //! globally unique, persistent index
+    int globalIndex () const { return _g.cell_global().index(_it.coord()); }
+
+    /** \brief Return the entity seed which contains sufficient information
+     *  to generate the entity again and uses as little memory as possible
+     */
+    EntitySeed seed () const {
+      return EntitySeed(YaspEntitySeed<0,GridImp>(_g->level(), _it.coord()));
     }
 
     //! geometry of this entity
-    Geometry geometry () const
-    {
-      DUNE_THROW(GridError, "YaspEntity not implemented");
+    Geometry geometry () const {
+      // the element geometry
+      GeometryImpl _geometry(_it.position(),_it.meshsize());
+      return Geometry( _geometry );
     }
 
     //! return partition type attribute
     PartitionType partitionType () const
     {
-      DUNE_THROW(GridError, "YaspEntity not implemented");
+      if (_g->vertex_interior.inside(_it.coord()))
+        return InteriorEntity;
+      if (_g->vertex_interiorborder.inside(_it.coord()))
+        return BorderEntity;
+      if (_g->vertex_overlap.inside(_it.coord()))
+        return OverlapEntity;
+      if (_g->vertex_overlapfront.inside(_it.coord()))
+        return FrontEntity;
+      return GhostEntity;
     }
+
+    /*! Return number of subentities with codimension cc.
+     */
+    int count () const
+    {
+      return 4;//2*dim;
+    }
+
+    /*! Intra-element access to subentities of codimension cc > codim.
+     */
+    /*    template<int cc>
+    typename Codim<cc>::EntityPointer subEntity (int i) const
+    {
+      // dune_static_assert( cc == dim || cc == 0 ,
+      //                  "YaspGrid only supports Entities with codim=dim and codim=0");
+      // coordinates of the cell == coordinates of lower left corner
+      if (cc==dim)
+      {
+        iTupel coord = _it.coord();
+
+        // get corner from there
+        for (int k=0; k<dim; k++)
+          if (i&(1<<k)) (coord[k])++;
+
+        return YaspEntityPointer<cc,GridImp>(_yg,_g,_g->vertex_overlapfront.begin(coord));
+      }
+      if (cc==0)
+      {
+        return YaspEntityPointer<cc,GridImp>(_yg,_g,_it);
+      }
+      DUNE_THROW(GridError, "codim " << cc << " (dim=" << dim << ") not (yet) implemented");
+      } */
 
     const GridImp * yaspgrid() const
     {
       DUNE_THROW(GridError, "YaspEntity not implemented");
     }
 
-    typedef typename GridImp::YGridLevelIterator YGLI;
-    typedef typename GridImp::YGrid::Iterator I;
+
+
     YaspEntity (const GridImp* yg, const YGLI& g, const I& it)
     {
       DUNE_THROW(GridError, "YaspEntity not implemented");
@@ -826,7 +872,7 @@ namespace Dune {
     friend class Dune::YaspIndexSet<GridImp,true>;
     friend class Dune::YaspIndexSet<GridImp,false>;
     friend class Dune::YaspGlobalIdSet<GridImp>;
-    typedef typename GridImp::PersistentIndexType PersistentIndexType;
+
 
     //! globally unique, persistent index
     PersistentIndexType persistentIndex () const
@@ -859,6 +905,14 @@ namespace Dune {
       DUNE_THROW(NotImplemented,"subIndex for entities with codimension > 0 is not implemented");
       return -1;
     }
+
+
+
+
+  protected:
+    const GridImp * _yg;          // access to YaspGrid
+    const I& _it;               // position in the grid level
+    const YGLI& _g;               // access to grid level
   };
 
 
@@ -913,7 +967,6 @@ namespace Dune {
 
     //! globally unique, persistent index
     int globalIndex () const { return _g.cell_global().index(_it.coord()); }
-
     /** \brief Return the entity seed which contains sufficient information
      *  to generate the entity again and uses as little memory as possible
      */
@@ -971,10 +1024,8 @@ namespace Dune {
       for (int i=0; i<dim; i++)
       {
         coord[i] = _it.coord(i);
-        if (coord[i]<0)
-          coord[i] += size[i];
-        if (coord[i]>=size[i])
-          coord[i] -= size[i];
+        if (coord[i]<0)          coord[i] += size[i];
+        if (coord[i]>=size[i])          coord[i] -= size[i];
       }
 
       // determine min number of trailing zeroes
