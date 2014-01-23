@@ -42,7 +42,7 @@ namespace Dune {
 
       lower[m] = upper[m] = p[m];
 
-      std::bitset<cdim> axes((1<<cdim)-1);    // all bits set
+      std::bitset<cdim> axes(1);    // all bits set
       axes[m] = false; // except the one at 'missing'
 
       // set up base class
@@ -114,6 +114,74 @@ namespace Dune {
 
   };
 
+
+
+
+
+
+
+
+
+
+  // //! specialize for dim=1, dimworld=2, i.e. a edge
+  // template<class GridImp>
+  // class YaspGeometry<1,2,GridImp> : public AxisAlignedCubeGeometry<typename GridImp::ctype,mydim,mydim>
+  // {
+  // public:
+  //   typedef typename GridImp::ctype ctype;
+
+  //   //! default constructor
+  //   YaspGeometry ()
+  //     : AxisAlignedCubeGeometry<ctype,1,2>(FieldVector<ctype,mydim>(0),FieldVector<ctype,mydim>(0)) // anything
+  //   {}
+
+  //   //! constructor from midpoint and extension
+  //   YaspGeometry (const FieldVector<ctype, mydim>& p, const FieldVector<ctype, mydim>& h)
+  //     : AxisAlignedCubeGeometry<ctype,mydim,mydim>(FieldVector<ctype,mydim>(0),FieldVector<ctype,mydim>(0)) // anything
+  //   {
+  //     FieldVector<ctype, mydim> lower = p;
+  //     FieldVector<ctype, mydim> upper = p;
+  //     lower.axpy(-0.5,h);
+  //     upper.axpy( 0.5,h);
+  //     // set up base class
+  //     static_cast< AxisAlignedCubeGeometry<ctype,mydim,mydim> & >( *this ) = AxisAlignedCubeGeometry<ctype,mydim,mydim>(lower, upper);
+  //   }
+
+  //   //! copy constructor (skipping temporary variables)
+  //   YaspGeometry (const YaspGeometry& other)
+  //     : AxisAlignedCubeGeometry<ctype,mydim,mydim>(other)
+  //   {}
+
+  //   //! print function
+  //   void print (std::ostream& s) const
+  //   {
+  //     s << "YaspGeometry<"<<mydim<<","<<mydim<< "> ";
+  //     s << "midpoint";
+  //     for (int i=0; i<mydim; i++)
+  //       s << " " << 0.5 * (this->lower_[i] + this->upper_[i]);
+  //     s << " extension";
+  //     for (int i=0; i<mydim; i++)
+  //       s << " " << (this->upper_[i] + this->lower_[i]);
+  //   }
+
+  // };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   //! specialization for dim=0, this is a vertex
   template<int cdim, class GridImp>
   class YaspGeometry<0,cdim,GridImp> : public AxisAlignedCubeGeometry<typename GridImp::ctype,0,cdim>
@@ -121,9 +189,10 @@ namespace Dune {
   public:
     typedef typename GridImp::ctype ctype;
 
+
     //! default constructor
     YaspGeometry ()
-      : AxisAlignedCubeGeometry<typename GridImp::ctype,0,cdim>(FieldVector<ctype,cdim>(0)) // anything
+      : AxisAlignedCubeGeometry<ctype,0,cdim>(FieldVector<ctype,cdim>(0)) // anything
     {}
 
     //! constructor

@@ -89,25 +89,25 @@ void check_yasp(bool p0=false) {
 
   gridcheck(*grid);
 
-  // check communication interface
-  checkCommunication(*grid,-1,Dune::dvverb);
-  for(int l=0; l<=grid->maxLevel(); ++l)
-    checkCommunication(*grid,l,Dune::dvverb);
+  // // check communication interface
+  // checkCommunication(*grid,-1,Dune::dvverb);
+  // for(int l=0; l<=grid->maxLevel(); ++l)
+  //   checkCommunication(*grid,l,Dune::dvverb);
 
-  // check geometry lifetime
-  checkGeometryLifetime( grid->leafView() );
-  // check the method geometryInFather()
-  checkGeometryInFather(*grid);
-  // check the intersection iterator and the geometries it returns
-  checkIntersectionIterator(*grid);
-  // check grid adaptation interface
-  checkAdaptRefinement(*grid);
-  checkPartitionType( grid->leafView() );
+  // // check geometry lifetime
+  // checkGeometryLifetime( grid->leafView() );
+  // // check the method geometryInFather()
+  // checkGeometryInFather(*grid);
+  // // check the intersection iterator and the geometries it returns
+  // checkIntersectionIterator(*grid);
+  // // check grid adaptation interface
+  // checkAdaptRefinement(*grid);
+  // checkPartitionType( grid->leafView() );
 
-  std::ofstream file;
-  file.open("output"+std::to_string(rank));
-  file << *grid << std::endl;
-  file.close();
+  // std::ofstream file;
+  // file.open("output"+std::to_string(rank));
+  // file << *grid << std::endl;
+  // file.close();
 
   delete grid;
 }

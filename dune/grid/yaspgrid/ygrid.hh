@@ -454,6 +454,11 @@ namespace Dune {
         return h;
       }
 
+      fTupel shift () const
+      {
+        return _grid->_shift;
+      }
+
     protected:
       int _index;          //!< current lexicographic position in index set
       iTupel _coord;       //!< current position in index set

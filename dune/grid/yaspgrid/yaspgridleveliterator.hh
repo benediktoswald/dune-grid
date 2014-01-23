@@ -6,6 +6,8 @@
 /** \file
  * \brief The YaspLevelIterator class
  */
+#include "../../../../dune-common/dune/common/binomialcoeff.hh"
+
 
 namespace Dune {
 
@@ -27,33 +29,35 @@ namespace Dune {
     typedef typename GridImp::YGrid::Iterator I;
 
     //! constructor
-    YaspLevelIterator (const GridImp * yg, const YGLI & g, const I& it) :
-      YaspEntityPointer<codim,GridImp>(yg,g,it) {}
+    YaspLevelIterator (const GridImp * yg, const YGLI & g,
+                       typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_begin, typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_end) :
+      YaspEntityPointer<codim,GridImp>(yg, g, ygrid_begin, ygrid_end)
+    {
+        current_ygrid = ygrid_begin;
+    }
 
     //! copy constructor
-    YaspLevelIterator (const YaspLevelIterator& i) :
-      YaspEntityPointer<codim,GridImp>(i) {}
+    //YaspLevelIterator (const YaspLevelIterator& i) :
+        // YaspEntityPointer<codim,GridImp>(i) {}
 
     //! increment
-    /*  void increment()
+    void increment()
     {
-      if (this->_it == _end)
-        {
-          if (this->_grid_index == 1)
-            {
-              DUNE_THROW(GridError, "impossible to increment: grid_index == 1  ");
-            }
-          ++this->_grid_index;
-          _end = _grids[i].end();
-          this->_it = _grids[i].begin();
-        }
-      else
-        {
+       if ( this->_it == this->_it.end() )
+       {
+          if ( ++current_ygrid  == this->_it.end() )
+          {
+            DUNE_THROW(GridError, "impossible to increment: last element reached");
+          }
+          this->_it = current_ygrid.begin();
+       }
+       else
+       {
           ++(this->_it);
-        }
-        }*/
+       }
+     }
 
-    I _end;
+typename array<typename GridImp::YGrid, Binomial<dim, codim>::val>::const_iterator current_ygrid;
   };
 
 }

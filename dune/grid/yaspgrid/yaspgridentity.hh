@@ -15,7 +15,7 @@
 //========================================================================
 
 
-
+#include "../../../../dune-common/dune/common/binomialcoeff.hh"
 
 namespace Dune {
 
@@ -168,12 +168,12 @@ namespace Dune {
     //! return partition type attribute
     PartitionType partitionType () const
     {
-      if (_g->cell_interior.inside(_it.coord()))
+      if (_g->cell_interior[0].inside(_it.coord()))
         return InteriorEntity;
-      if (_g->cell_overlap.inside(_it.coord()))
+      if (_g->cell_overlap[0].inside(_it.coord()))
         return OverlapEntity;
       DUNE_THROW(GridError, "Impossible GhostEntity " << _it.coord() << "\t"
-                                                      << _g->cell_interior.origin() << "/" << _g->cell_interior.size());
+                                                      << _g->cell_interior[0].origin() << "/" << _g->cell_interior[0].size());
       return GhostEntity;
     }
 
@@ -200,8 +200,8 @@ namespace Dune {
     template<int cc>
     typename Codim<cc>::EntityPointer subEntity (int i) const
     {
-      dune_static_assert( cc == dim || cc == 0 ,
-                          "YaspGrid only supports Entities with codim=dim and codim=0");
+      dune_static_assert( cc == dim || cc == 0 || cc==1,
+                          "YaspGrid only supports Entities with codim=dim and codim=0 and codim=1");
       // coordinates of the cell == coordinates of lower left corner
       if (cc==dim)
       {
@@ -211,12 +211,18 @@ namespace Dune {
         for (int k=0; k<dim; k++)
           if (i&(1<<k)) (coord[k])++;
 
-        return YaspEntityPointer<cc,GridImp>(_yg,_g,_g->vertex_overlapfront.begin(coord));
+        return YaspEntityPointer<cc,GridImp>(_yg,_g,
+    (typename array<typename GridImp::YGrid, Binomial<dim,cc>::val>::const_iterator)_g->vertex_overlapfront[0].begin(coord), (typename array<typename GridImp::YGrid, Binomial<dim,cc>::val>::const_iterator)_g->vertex_overlapfront[0].begin(coord));
       }
       if (cc==0)
       {
-        return YaspEntityPointer<cc,GridImp>(_yg,_g,_it);
+        return YaspEntityPointer<cc,GridImp>(_yg,_g,_it, _it);
       }
+      // if (cc==1)
+      // {
+      //   return YaspEntityPointer<cc, GridImp>(_yg,_g,_it);
+      // }
+
       DUNE_THROW(GridError, "codim " << cc << " (dim=" << dim << ") not (yet) implemented");
     }
 
@@ -243,7 +249,7 @@ namespace Dune {
     //! returns true if father entity exists
     bool hasFather () const
     {
-      return (_g->level()>0);
+    return (_g->level()>0);
     }
 
     /*! Location of this element relative to the reference element of its father
@@ -751,7 +757,7 @@ namespace Dune {
   {
     enum { dimworld = GridImp::dimensionworld };
 
-    typedef typename GridImp::Traits::template Codim< 0 >::GeometryImpl GeometryImpl;
+    typedef typename GridImp::Traits::template Codim< 1 >::GeometryImpl GeometryImpl;
 
   public:
     typedef typename GridImp::ctype ctype;
@@ -759,8 +765,8 @@ namespace Dune {
     typedef typename GridImp::YGridLevelIterator YGLI;
     typedef typename GridImp::YGrid::Iterator I;
 
-    typedef typename GridImp::template Codim< 0 >::Geometry Geometry;
-    typedef typename GridImp::template Codim< 0 >::LocalGeometry LocalGeometry;
+    typedef typename GridImp::template Codim< 1 >::Geometry Geometry;
+    typedef typename GridImp::template Codim< 1 >::LocalGeometry LocalGeometry;
 
     template <int cd>
     struct Codim
@@ -768,8 +774,8 @@ namespace Dune {
       typedef typename GridImp::template Codim<cd>::EntityPointer EntityPointer;
     };
 
-    typedef typename GridImp::template Codim<0>::EntityPointer EntityPointer;
-    typedef typename GridImp::template Codim<0>::EntitySeed EntitySeed;
+    typedef typename GridImp::template Codim<1>::EntityPointer EntityPointer;
+    typedef typename GridImp::template Codim<1>::EntitySeed EntitySeed;
     typedef typename GridImp::LevelIntersectionIterator IntersectionIterator;
     typedef typename GridImp::LevelIntersectionIterator LevelIntersectionIterator;
     typedef typename GridImp::LeafIntersectionIterator LeafIntersectionIterator;
@@ -781,11 +787,17 @@ namespace Dune {
     //! define type used for coordinates in grid module
     typedef typename GridImp::YGrid::iTupel iTupel;
 
+    //! define type used for shift vector in ygrid module
+    typedef typename GridImp::YGrid::fTupel fTupel;
 
 
 
   public:
 
+    // constructor
+    YaspEntity (const GridImp * yg, const YGLI& g, const I& it)
+      : _yg(yg), _it(it), _g(g)
+    {}
 
     //! level of this element
     int level () const { return _g->level(); }
@@ -806,7 +818,12 @@ namespace Dune {
     //! geometry of this entity
     Geometry geometry () const {
       // the element geometry
-      GeometryImpl _geometry(_it.position(),_it.meshsize());
+      fTupel tmp = _it.shift();
+      //x or y direction
+      uint8_t m = 0;
+      if(tmp[0] > 0) m=1;  // m=01b  x direction
+      if(tmp[1] > 0) m=2;  // m=10b  y direction
+      GeometryImpl _geometry(_it.position(),_it.meshsize(), m);
       return Geometry( _geometry );
     }
 
@@ -856,17 +873,7 @@ namespace Dune {
       DUNE_THROW(GridError, "codim " << cc << " (dim=" << dim << ") not (yet) implemented");
       } */
 
-    const GridImp * yaspgrid() const
-    {
-      DUNE_THROW(GridError, "YaspEntity not implemented");
-    }
 
-
-
-    YaspEntity (const GridImp* yg, const YGLI& g, const I& it)
-    {
-      DUNE_THROW(GridError, "YaspEntity not implemented");
-    }
 
     // IndexSets needs access to the private index methods
     friend class Dune::YaspIndexSet<GridImp,true>;
@@ -906,14 +913,28 @@ namespace Dune {
       return -1;
     }
 
-
-
+  public:
+    const I& transformingsubiterator() const { return _it; }
+    const YGLI& gridlevel() const { return _g; }
+    const GridImp * yaspgrid() const { return _yg; }
 
   protected:
     const GridImp * _yg;          // access to YaspGrid
     const I& _it;               // position in the grid level
     const YGLI& _g;               // access to grid level
   };
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -7,6 +7,8 @@
  * \brief The YaspEntityPointer class
  */
 
+#include "../../../../dune-common/dune/common/binomialcoeff.hh"
+
 namespace Dune {
 
   /** \brief A pointer to a YaspGrid::Entity
@@ -32,15 +34,32 @@ namespace Dune {
     enum { codimension = codim };
 
     //! constructor
-    YaspEntityPointer (const GridImp * yg, const YGLI & g, const I& it)
-      : _g(g), _it(it),
-        _entity(MakeableInterfaceObject<Entity>(YaspEntity<codim,dim,GridImp>(yg, _g,_it)))
+    YaspEntityPointer (const GridImp * yg, const YGLI & g,
+                       typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_begin,
+                       typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_end
+                       )
+      : _g(g), _ygrid_begin(ygrid_begin), _ygrid_end(ygrid_end), _it(ygrid_begin->begin()),
+        _entity(MakeableInterfaceObject<Entity>( YaspEntity<codim,dim,GridImp>(yg, _g, _it)))
     {
-      if (codim>0 && codim<dim)
+
+      //start at the beginning of first ygrid
+      if( ygrid_begin != ygrid_end )
       {
-        DUNE_THROW(GridError, "YaspEntityPointer: codim not implemented");
+        _it = ygrid_begin->begin();
       }
+      //start at one past the last element of last ygrid
+      else
+      {
+        _it = ygrid_end->end();
+      }
+
+      //_entity = MakeableInterfaceObject<Entity>( YaspEntity<codim,dim,GridImp>(yg, _g, _it));
+      // if (codim>0 && codim<dim)
+      // {
+      // DUNE_THROW(GridError, "YaspEntityPointer: codim not implemented");
+      // }
     }
+
 
     //! copy constructor
     YaspEntityPointer (const YaspEntityImp& entity)
@@ -113,6 +132,8 @@ namespace Dune {
 
   protected:
     YGLI _g;             // access to grid level
+    typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator _ygrid_begin;
+    typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator _ygrid_end;
     I _it;             // position in the grid level
     mutable MakeableInterfaceObject<Entity> _entity; //!< virtual entity
   };
