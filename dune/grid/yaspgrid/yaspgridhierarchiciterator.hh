@@ -26,7 +26,7 @@ namespace Dune {
 
     //! constructor
     YaspHierarchicIterator (const GridImp* yg, const YGLI& g, const I& it, int maxlevel) :
-      YaspEntityPointer<0,GridImp>(yg,g,it)
+      YaspEntityPointer<0,GridImp>(yg,g,g->cell_overlap.begin(), g->cell_overlap.begin(), it)
     {
       // now iterator points to current cell
       StackElem se(this->_g);
@@ -104,7 +104,7 @@ namespace Dune {
         // not all entities have 2^d subentities due to refineOptions with keep_ovlp==false
         bool exists = true;
         for (int k=0; k<dim; k++)
-          if ((se.coord[k] < finer->cell_overlap.origin(k)) || (se.coord[k] >= finer->cell_overlap.origin(k)+finer->cell_overlap.size(k)))
+          if ((se.coord[k] < finer->cell_overlap[0].origin(k)) || (se.coord[k] >= finer->cell_overlap[0].origin(k)+finer->cell_overlap[0].size(k)))
             exists = false;
         if (exists)
           stack.push(se);
@@ -117,7 +117,7 @@ namespace Dune {
       StackElem se = stack.top();
       stack.pop();
       this->_g = se.g;
-      this->_it.reinit(this->_g->cell_overlap,se.coord);
+      this->_it.reinit(this->_g->cell_overlap[0],se.coord);
     }
   };
 

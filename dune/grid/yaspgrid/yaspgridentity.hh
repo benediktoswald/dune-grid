@@ -211,11 +211,11 @@ namespace Dune {
         for (int k=0; k<dim; k++)
           if (i&(1<<k)) (coord[k])++;
 
-        return YaspEntityPointer<cc,GridImp>(_yg,_g, _g->vertex_overlapfront[0].begin(coord), _g->vertex_overlapfront[0].begin(coord));
+        return YaspEntityPointer<cc,GridImp>(_yg,_g, _g->vertex_overlapfront.begin(), _g->vertex_overlapfront.begin(), _g->vertex_overlapfront[0].begin(coord));
       }
       if (cc==0)
       {
-        return YaspEntityPointer<cc,GridImp>(_yg,_g,_it, _it);
+        return YaspEntityPointer<cc,GridImp>(_yg,_g,_g->cell_overlap.begin(),_g->cell_overlap.begin(), _it);
       }
       // if (cc==1)
       // {
@@ -242,7 +242,7 @@ namespace Dune {
       // get coordinates on next coarser level
       for (int k=0; k<dim; k++) coord[k] = coord[k]/2;
 
-      return YaspEntityPointer<0,GridImp>(_yg,cg,cg->cell_overlap.begin(coord));
+      return YaspEntityPointer<0,GridImp>(_yg,cg,_g->cell_overlap.begin(),_g->cell_overlap.begin(), cg->cell_overlap[0].begin(coord));
     }
 
     //! returns true if father entity exists
@@ -540,7 +540,7 @@ namespace Dune {
       // get cell position relative to origin of local cell grid
       iTupel coord;
       for (int k=0; k<dim; ++k)
-        coord[k] = _it.coord(k)-_g->cell_overlap.origin(k);
+        coord[k] = _it.coord(k)-_g->cell_overlap[0].origin(k);
 
       if (cc==dim) // vertices
       {
@@ -551,7 +551,7 @@ namespace Dune {
         // do lexicographic numbering
         int index = coord[dim-1];
         for (int k=dim-2; k>=0; --k)
-          index = (index*(_g->cell_overlap.size(k)+1))+coord[k];
+          index = (index*(_g->cell_overlap[0].size(k)+1))+coord[k];
         return index;
       }
 
@@ -569,16 +569,16 @@ namespace Dune {
         int index = coord[dim-1];
         for (int k=dim-2; k>=0; --k)
           if (k==ivar)
-            index = (index*(_g->cell_overlap.size(k)+1))+coord[k]; // one more
+            index = (index*(_g->cell_overlap[0].size(k)+1))+coord[k]; // one more
           else
-            index = (index*(_g->cell_overlap.size(k)))+coord[k];
+            index = (index*(_g->cell_overlap[0].size(k)))+coord[k];
 
         // add size of all subsets for smaller directions
         for (int j=0; j<ivar; j++)
         {
-          int n=_g->cell_overlap.size(j)+1;
+          int n=_g->cell_overlap[0].size(j)+1;
           for (int l=0; l<dim; l++)
-            if (l!=j) n *= _g->cell_overlap.size(l);
+            if (l!=j) n *= _g->cell_overlap[0].size(l);
           index += n;
         }
 
@@ -612,16 +612,16 @@ namespace Dune {
         int index = coord[dim-1];
         for (int k=dim-2; k>=0; --k)
           if (k!=ifix)
-            index = (index*(_g->cell_overlap.size(k)+1))+coord[k]; // one more
+            index = (index*(_g->cell_overlap[0].size(k)+1))+coord[k]; // one more
           else
-            index = (index*(_g->cell_overlap.size(k)))+coord[k];
+            index = (index*(_g->cell_overlap[0].size(k)))+coord[k];
 
         // add size of all subsets for smaller directions
         for (int j=dim-1; j>ifix; j--)
         {
-          int n=_g->cell_overlap.size(j);
+          int n=_g->cell_overlap[0].size(j);
           for (int l=0; l<dim; l++)
-            if (l!=j) n *= _g->cell_overlap.size(l)+1;
+            if (l!=j) n *= _g->cell_overlap[0].size(l)+1;
           index += n;
         }
 
@@ -811,7 +811,7 @@ namespace Dune {
      *  to generate the entity again and uses as little memory as possible
      */
     EntitySeed seed () const {
-      return EntitySeed(YaspEntitySeed<0,GridImp>(_g->level(), _it.coord()));
+      return EntitySeed(YaspEntitySeed<1,GridImp>(_g->level(), _it.coord()));
     }
 
     //! geometry of this entity
@@ -829,13 +829,13 @@ namespace Dune {
     //! return partition type attribute
     PartitionType partitionType () const
     {
-      if (_g->vertex_interior.inside(_it.coord()))
+      if (_g->vertex_interior[0].inside(_it.coord()))
         return InteriorEntity;
-      if (_g->vertex_interiorborder.inside(_it.coord()))
+      if (_g->vertex_interiorborder[0].inside(_it.coord()))
         return BorderEntity;
-      if (_g->vertex_overlap.inside(_it.coord()))
+      if (_g->vertex_overlap[0].inside(_it.coord()))
         return OverlapEntity;
-      if (_g->vertex_overlapfront.inside(_it.coord()))
+      if (_g->vertex_overlapfront[0].inside(_it.coord()))
         return FrontEntity;
       return GhostEntity;
     }
@@ -1003,13 +1003,13 @@ namespace Dune {
     //! return partition type attribute
     PartitionType partitionType () const
     {
-      if (_g->vertex_interior.inside(_it.coord()))
+      if (_g->vertex_interior[0].inside(_it.coord()))
         return InteriorEntity;
-      if (_g->vertex_interiorborder.inside(_it.coord()))
+      if (_g->vertex_interiorborder[0].inside(_it.coord()))
         return BorderEntity;
-      if (_g->vertex_overlap.inside(_it.coord()))
+      if (_g->vertex_overlap[0].inside(_it.coord()))
         return OverlapEntity;
-      if (_g->vertex_overlapfront.inside(_it.coord()))
+      if (_g->vertex_overlapfront[0].inside(_it.coord()))
         return FrontEntity;
       return GhostEntity;
     }

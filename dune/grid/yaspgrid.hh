@@ -1172,9 +1172,9 @@ namespace Dune {
         std::bitset<dim> ovlp_low(0), ovlp_up(0);
         for (int i=0; i<dim; i++)
         {
-          if (cg.cell_overlap.origin(i) > 0)
+          if (cg.cell_overlap[0].origin(i) > 0)
             ovlp_low[i] = true;
-          if (cg.cell_overlap.max(i) + 1 < globalSize<0>(i))
+          if (cg.cell_overlap[0].max(i) + 1 < globalSize<0>(i))
             ovlp_up[i] = true;
         }
 
@@ -1185,7 +1185,7 @@ namespace Dune {
         //determine new origin
         iTupel o_interior;
         for (int i=0; i<dim; i++)
-          o_interior[i] = 2*cg.cell_interior.origin(i);
+          o_interior[i] = 2*cg.cell_interior[0].origin(i);
 
         // add level
         _levels.resize(_levels.size() + 1);
@@ -1323,11 +1323,11 @@ namespace Dune {
       switch (codim)
       {
       case 0 :
-        return YaspEntityPointer<codim,GridImp>(this,g,
-                                                I(g->cell_overlap, this->getRealImplementation(seed).coord()));
+        return YaspEntityPointer<codim,GridImp>(this,g,g->cell_overlap.begin(), g->cell_overlap.begin(),
+                                                I(g->cell_overlap[0], this->getRealImplementation(seed).coord()));
       case dim :
-        return YaspEntityPointer<codim,GridImp>(this,g,
-                                                I(g->vertex_overlapfront, this->getRealImplementation(seed).coord()));
+        return YaspEntityPointer<codim,GridImp>(this,g,g->vertex_overlapfront.begin(), g->vertex_overlapfront.begin(),
+                                                I(g->vertex_overlapfront[0], this->getRealImplementation(seed).coord()));
       default :
         DUNE_THROW(GridError, "YaspEntityPointer: codim not implemented");
       }
@@ -1808,7 +1808,7 @@ namespace Dune {
     template<int cd, PartitionIteratorType pitype>
     YaspLevelIterator<cd,pitype,GridImp> levelbegin (int level) const
     {
-      dune_static_assert( cd == dim || cd == 0 ,
+      dune_static_assert( cd == dim || cd == 0  || (cd==1 && dim==2) ,
                           "YaspGrid only supports Entities with codim=dim and codim=0");
       YGridLevelIterator g = begin(level);
       if (level<0 || level>maxLevel()) DUNE_THROW(RangeError, "level out of range");

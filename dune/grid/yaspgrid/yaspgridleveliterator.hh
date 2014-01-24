@@ -43,13 +43,13 @@ namespace Dune {
     //! increment
     void increment()
     {
-       if ( this->_it == this->_it.end() )
+       if ( this->_it == this->_it.grid()->end() )
        {
-          if ( ++current_ygrid  == this->_it.end() )
+          if ( ++current_ygrid  == this->_ygrid_end )
           {
             DUNE_THROW(GridError, "impossible to increment: last element reached");
           }
-          this->_it = current_ygrid.begin();
+          this->_it = current_ygrid->begin();
        }
        else
        {

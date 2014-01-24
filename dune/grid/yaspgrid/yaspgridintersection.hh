@@ -71,9 +71,9 @@ namespace Dune {
     //! return true if neighbor across intersection exists in this processor
     bool neighbor () const
     {
-      return (_inside.transformingsubiterator().coord(_count/2) + 2*(_count%2) - 1 >= _inside.gridlevel()->cell_overlap.min(_count/2)
+      return (_inside.transformingsubiterator().coord(_count/2) + 2*(_count%2) - 1 >= _inside.gridlevel()->cell_overlap[0].min(_count/2)
               &&
-              _inside.transformingsubiterator().coord(_count/2) + 2*(_count%2) - 1 <= _inside.gridlevel()->cell_overlap.max(_count/2));
+              _inside.transformingsubiterator().coord(_count/2) + 2*(_count%2) - 1 <= _inside.gridlevel()->cell_overlap[0].max(_count/2));
     }
 
     //! Yasp is always conform
@@ -114,17 +114,17 @@ namespace Dune {
         DUNE_THROW(GridError, "called boundarySegmentIndex while boundary() == false");
       update();
       // size of local macro grid
-      const Dune::array<int, dim> & size = _inside.gridlevel()->mg->begin()->cell_overlap.size();
-      const Dune::array<int, dim> & origin = _inside.gridlevel()->mg->begin()->cell_overlap.origin();
+      const Dune::array<int, dim> & size = _inside.gridlevel()->mg->begin()->cell_overlap[0].size();
+      const Dune::array<int, dim> & origin = _inside.gridlevel()->mg->begin()->cell_overlap[0].origin();
       Dune::array<int, dim> sides;
       {
         for (int i=0; i<dim; i++)
         {
           sides[i] =
-            ((_inside.gridlevel()->mg->begin()->cell_overlap.origin(i)
+            ((_inside.gridlevel()->mg->begin()->cell_overlap[0].origin(i)
               == 0)+
-             (_inside.gridlevel()->mg->begin()->cell_overlap.origin(i) +
-                      _inside.gridlevel()->mg->begin()->cell_overlap.size(i)
+             (_inside.gridlevel()->mg->begin()->cell_overlap[0].origin(i) +
+                      _inside.gridlevel()->mg->begin()->cell_overlap[0].size(i)
                       ==
                       _inside.gridlevel()->mg->template levelSize<0>(0,i)));
 
@@ -252,8 +252,12 @@ namespace Dune {
     //! make intersection iterator from entity, initialize to first neighbor
     YaspIntersection (const YaspEntity<0,dim,GridImp>& myself, bool toend) :
       _inside(myself.yaspgrid(), myself.gridlevel(),
+              myself.gridlevel()->cell_overlap.begin(),
+              myself.gridlevel()->cell_overlap.begin(),
               myself.transformingsubiterator()),
       _outside(myself.yaspgrid(), myself.gridlevel(),
+               myself.gridlevel()->cell_overlap.begin(),
+               myself.gridlevel()->cell_overlap.begin(),
                myself.transformingsubiterator()),
       // initialize to first neighbor
       _count(0),

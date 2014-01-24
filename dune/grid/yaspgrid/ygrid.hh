@@ -459,6 +459,12 @@ namespace Dune {
         return _grid->_shift;
       }
 
+      const YGrid<CC,d,ct>* grid () const
+      {
+        return _grid;
+      }
+
+
     protected:
       int _index;          //!< current lexicographic position in index set
       iTupel _coord;       //!< current position in index set

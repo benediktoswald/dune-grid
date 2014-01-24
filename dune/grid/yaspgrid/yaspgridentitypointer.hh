@@ -61,6 +61,23 @@ namespace Dune {
     }
 
 
+
+    //constructor if you want to specify _it explicitly
+    YaspEntityPointer (const GridImp * yg, const YGLI & g,
+                       typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_begin,
+                       typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_end,
+                       const I& it
+                       )
+      : _g(g), _ygrid_begin(ygrid_begin), _ygrid_end(ygrid_end), _it(it),
+        _entity(MakeableInterfaceObject<Entity>( YaspEntity<codim,dim,GridImp>(yg, _g, _it)))
+    {
+
+
+    }
+
+
+
+
     //! copy constructor
     YaspEntityPointer (const YaspEntityImp& entity)
       : _g(entity.gridlevel()),
