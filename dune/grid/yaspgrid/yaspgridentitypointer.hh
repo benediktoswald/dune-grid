@@ -36,7 +36,7 @@ namespace Dune {
     //! constructor
     YaspEntityPointer (const GridImp * yg, const YGLI & g,
                        typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_begin,
-                       typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_end
+                        typename array<typename GridImp::YGrid, Binomial<dim,codim>::val>::const_iterator ygrid_end
                        )
       : _g(g), _ygrid_begin(ygrid_begin), _ygrid_end(ygrid_end), _it(ygrid_begin->begin()),
         _entity(MakeableInterfaceObject<Entity>( YaspEntity<codim,dim,GridImp>(yg, _g, _it)))

@@ -211,8 +211,7 @@ namespace Dune {
         for (int k=0; k<dim; k++)
           if (i&(1<<k)) (coord[k])++;
 
-        return YaspEntityPointer<cc,GridImp>(_yg,_g,
-    (typename array<typename GridImp::YGrid, Binomial<dim,cc>::val>::const_iterator)_g->vertex_overlapfront[0].begin(coord), (typename array<typename GridImp::YGrid, Binomial<dim,cc>::val>::const_iterator)_g->vertex_overlapfront[0].begin(coord));
+        return YaspEntityPointer<cc,GridImp>(_yg,_g, _g->vertex_overlapfront[0].begin(coord), _g->vertex_overlapfront[0].begin(coord));
       }
       if (cc==0)
       {
