@@ -1,8 +1,8 @@
-// -*- tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-// vi: set et ts=4 sw=2 sts=2:
+// curvilinear gmsh reader functionality - in this implementation of the curvilinear gmsh reader we ONLY read higher order triangles and tetrahedra
 
-#ifndef DUNE_GMSHREADER_HH
-#define DUNE_GMSHREADER_HH
+
+#ifndef DUNE_CURVILINEARGMSHREADER_HH
+#define DUNE_CURVILINEARGMSHREADER_HH
 
 #include <cstdarg>
 #include <cstdio>
@@ -31,14 +31,16 @@ namespace Dune
      \{
    */
 
-  //! Options for read operation
-  struct GmshReaderOptions
+  /** options for gmsh read operation; nota bene gmsh support up to sixth order curvilinear element generation **/
+  struct CurvilinearGmshReaderOptions
   {
     enum GeometryOrder {
-      /** @brief edges are straight lines. */
-      firstOrder,
-      /** @brief quadratic boundary approximation. */
-      secondOrder
+      firstOrder,				/** @brief edges are straight lines. 				**/
+      secondOrder,				/** @brief quadratic boundary approximation. 		**/
+      thirdOrder,				/** @brief cubic boundary approximation. 			**/
+      fourthOrder,				/** @brief fourth order boundary approximation. 	**/
+      fifthOrder,				/** @brief fifth order boundary approximation. 		**/
+      sixthOrder				/** @brief sixth order boundary approximation. 		**/
     };
   };
 
@@ -46,7 +48,7 @@ namespace Dune
 
     // arbitrary dimension, implementation is in specialization
     template< int dimension, int dimWorld = dimension >
-    class GmshReaderQuadraticBoundarySegment
+    class CurvilinearGmshReaderQuadraticBoundarySegment
     {};
 
     // quadratic boundary segments in 1d
@@ -62,12 +64,12 @@ namespace Dune
        alpha is determined automatically from the given points.
      */
     template< int dimWorld >
-    struct GmshReaderQuadraticBoundarySegment< 2, dimWorld >
+    struct CurvilinearGmshReaderQuadraticBoundarySegment< 2, dimWorld >
       : public Dune::BoundarySegment< 2, dimWorld >
     {
       typedef Dune::FieldVector< double, dimWorld > GlobalVector;
 
-      GmshReaderQuadraticBoundarySegment ( const GlobalVector &p0_, const GlobalVector &p1_, const GlobalVector &p2_)
+      CurvilinearGmshReaderQuadraticBoundarySegment ( const GlobalVector &p0_, const GlobalVector &p1_, const GlobalVector &p2_)
         : p0(p0_), p1(p1_), p2(p2_)
       {
         GlobalVector d1 = p1;
@@ -120,11 +122,11 @@ namespace Dune
        global coordinates.
      */
     template<>
-    class GmshReaderQuadraticBoundarySegment< 3, 3 >
+    class CurvilinearGmshReaderQuadraticBoundarySegment< 3, 3 >
       : public Dune::BoundarySegment< 3 >
     {
     public:
-      GmshReaderQuadraticBoundarySegment (Dune::FieldVector<double,3> p0_, Dune::FieldVector<double,3> p1_,
+    CurvilinearGmshReaderQuadraticBoundarySegment (Dune::FieldVector<double,3> p0_, Dune::FieldVector<double,3> p1_,
                                           Dune::FieldVector<double,3> p2_, Dune::FieldVector<double,3> p3_,
                                           Dune::FieldVector<double,3> p4_, Dune::FieldVector<double,3> p5_)
         : p0(p0_), p1(p1_), p2(p2_), p3(p3_), p4(p4_), p5(p5_)
@@ -199,9 +201,9 @@ namespace Dune
 
   }   // end empty namespace
 
-  //! dimension independent parts for GmshReaderParser
+  //! dimension independent parts for CurvilinearGmshReaderParser
   template<typename GridType>
-  class GmshReaderParser
+  class CurvilinearGmshReaderParser
   {
   protected:
     // private data
@@ -217,6 +219,32 @@ namespace Dune
     // exported data
     std::vector<int> boundary_id_to_physical_entity;
     std::vector<int> element_index_to_physical_entity;
+
+
+
+    std::map<int, unsigned int> nodeofelement;	/** \brief map stores the number of vertex indices for a specific element type **/
+
+    /** \brief assign element id based on gmsh nomenclature, cf. Gmsh reference manual, chapter 15, file formats, pp. 91-93 **/
+	enum{
+	/** \brief higher order triangle id **/
+    		TRIANGLE_3_NODE_1ST_ORDER		=	2,
+    		TRIANGLE_6_NODE_2ND_ORDER		=	9,
+    		TRIANGLE_9_NODE_3RD_ORDER		=	20,
+    		TRIANGLE_10_NODE_3RD_ORDER		=	21,
+    		TRIANGLE_12_NODE_4TH_ORDER		=	22,
+    		TRIANGLE_15_NODE_4TH_ORDER		=	23,
+    		TRIANGLE_15_NODE_5TH_ORDER		=	24,
+    		TRIANGLE_21_NODE_5TH_ORDER		=	25,
+
+    		/** \brief higher order tetrahedron id **/
+    		TETRAHEDRON_4_NODE_1ST_ORDER	=	4,
+    		TETRAHEDRON_10_NODE_2ND_ORDER	=	11,
+    		TETRAHEDRON_20_NODE_3RD_ORDER	=	29,
+    		TETRAHEDRON_35_NODE_4TH_ORDER	=	30,
+    		TETRAHEDRON_56_NODE_5TH_ORDER	=	31
+    };
+
+
 
     // static data
     static const int dim = GridType::dimension;
@@ -254,8 +282,44 @@ namespace Dune
 
   public:
 
-    GmshReaderParser(Dune::GridFactory<GridType>& _factory, bool v, bool i) :
-      factory(_factory), verbose(v), insert_boundary_segments(i) {}
+    CurvilinearGmshReaderParser(Dune::GridFactory<GridType>& _factory, bool v, bool i) :
+      factory(_factory), verbose(v), insert_boundary_segments(i)
+
+  	{
+    	/** \brief build a map that stores the number of vertex indices for a specific element type **/
+		nodeofelement.clear();
+
+		/** \brief initialize the map for the highr order triangles **/
+		nodeofelement.insert(std::make_pair(TRIANGLE_3_NODE_1ST_ORDER,3));
+
+		nodeofelement.insert(std::make_pair(TRIANGLE_6_NODE_2ND_ORDER,6));
+
+		nodeofelement.insert(std::make_pair(TRIANGLE_9_NODE_3RD_ORDER,9));
+
+		nodeofelement.insert(std::make_pair(TRIANGLE_10_NODE_3RD_ORDER,10));
+
+		nodeofelement.insert(std::make_pair(TRIANGLE_12_NODE_4TH_ORDER,12));
+
+		nodeofelement.insert(std::make_pair(TRIANGLE_15_NODE_4TH_ORDER,15));
+
+		nodeofelement.insert(std::make_pair(TRIANGLE_15_NODE_5TH_ORDER,15));
+
+		nodeofelement.insert(std::make_pair(TRIANGLE_21_NODE_5TH_ORDER,21));
+
+
+		/** \brief initialize the map for the highr order tetrahedra **/
+		nodeofelement.insert(std::make_pair(TETRAHEDRON_4_NODE_1ST_ORDER,4));
+
+		nodeofelement.insert(std::make_pair(TETRAHEDRON_10_NODE_2ND_ORDER,10));
+
+		nodeofelement.insert(std::make_pair(TETRAHEDRON_20_NODE_3RD_ORDER,20));
+
+		nodeofelement.insert(std::make_pair(TETRAHEDRON_35_NODE_4TH_ORDER,35));
+
+		nodeofelement.insert(std::make_pair(TETRAHEDRON_56_NODE_5TH_ORDER,56));
+
+
+  	}
 
     std::vector<int> & boundaryIdMap()
     {
@@ -269,7 +333,7 @@ namespace Dune
 
     void read (const std::string& f)
     {
-      if (verbose) std::cout << "Reading " << dim << "d Gmsh grid..." << std::endl;
+      if (verbose) std::cout << "::: reading" << dim << "d curvilineaar gmsh grid..." << std::endl;
 
       // open file name, we use C I/O
       fileName = f;
@@ -346,22 +410,26 @@ namespace Dune
       std::map<int,unsigned int> renumber;
       for (int i=1; i<=number_of_elements; i++)
       {
-        int id, elm_type, number_of_tags;
-        readfile(file,3,"%d %d %d ",&id,&elm_type,&number_of_tags);
-        for (int k=1; k<=number_of_tags; k++)
-        {
-          int blub;
-          readfile(file,1,"%d ",&blub);
-          // k == 1: physical entity (not used here)
-          // k == 2: elementary entity (not used here either)
-          // if version_number < 2.2:
-          //   k == 3: mesh partition 0
-          // else
-          //   k == 3: number of mesh partitions
-          //   k => 4: mesh partition k-4
-        }
-        pass1HandleElement(file, elm_type, renumber, nodes);
+    /** \brief handle one line in the gmsh file, i.e. handle an element **/
+    int id, elm_type, number_of_tags;
+    readfile(file,3,"%d %d %d ",&id,&elm_type,&number_of_tags);
+
+    for (int k=1; k<=number_of_tags; k++)
+    {
+    		  int blub;
+    		  readfile(file,1,"%d ",&blub);
+			  // k == 1: physical entity (not used here)
+			  // k == 2: elementary entity (not used here either)
+			  // if version_number < 2.2:
+			  //   k == 3: mesh partition 0
+			  // else
+			  //   k == 3: number of mesh partitions
+			  //   k => 4: mesh partition k-4
+    }
+    /** \brief pass no. 1 - handle the element **/
+    pass1HandleElement(file, elm_type, renumber, nodes);
       }
+
       if (verbose) std::cout << "number of real vertices = " << number_of_real_vertices << std::endl;
       if (verbose) std::cout << "number of boundary elements = " << boundary_element_count << std::endl;
       if (verbose) std::cout << "number of elements = " << element_count << std::endl;
@@ -415,11 +483,130 @@ namespace Dune
       fclose(file);
     }
 
-    // dimension dependent routines
-    void pass1HandleElement(FILE* file, const int elm_type,
-                            std::map<int,unsigned int> & renumber,
-                            const std::vector< GlobalVector > & nodes)
+    /*****************************************************************************************************/
+    /** \brief dimension dependent routines - handle the indices of an element							**/
+    /**        this routine is called when the first part of the line in the gmsh file has already		**/
+    /** been handled; i.e. element id, element type, number of tags and tags have been processed and	**/
+    /** are known.																						**/
+    /*****************************************************************************************************/
+    void pass1HandleElement(FILE* file,
+    						const int elm_type,
+    						std::map<int,unsigned int>& renumber,
+    						const std::vector<GlobalVector>& nodes)
     {
+    	/** \brief we ONLY read higher order triangles and tetrahedra **/
+
+    	/** \brief switch between elements via case discrimination **/
+    	switch (elm_type)
+    	{
+    		case	TRIANGLE_3_NODE_1ST_ORDER:
+
+    			break;
+
+
+
+    		case	TRIANGLE_6_NODE_2ND_ORDER:
+
+
+    			break;
+
+
+
+    		case	TRIANGLE_9_NODE_3RD_ORDER:
+
+
+    			break;
+
+
+
+    		case	TRIANGLE_10_NODE_3RD_ORDER:
+
+
+    			break;
+
+
+
+    		case	TRIANGLE_12_NODE_4TH_ORDER:
+
+
+    			break;
+
+
+
+
+    		case	TRIANGLE_15_NODE_4TH_ORDER:
+
+    			break;
+
+
+
+    		case	TRIANGLE_15_NODE_5TH_ORDER:
+
+
+    			break;
+
+
+    		case	TRIANGLE_21_NODE_5TH_ORDER:
+
+
+    			break;
+
+
+
+
+
+    		case	TETRAHEDRON_4_NODE_1ST_ORDER:
+
+
+    			break;
+
+
+
+    		case	TETRAHEDRON_10_NODE_2ND_ORDER:
+
+
+    			break;
+
+
+
+    		case	TETRAHEDRON_20_NODE_3RD_ORDER:
+
+
+    			break;
+
+
+
+    		case	TETRAHEDRON_35_NODE_4TH_ORDER:
+
+
+    			break;
+
+
+
+    		case	TETRAHEDRON_56_NODE_5TH_ORDER:
+
+
+
+    			break;
+
+
+
+
+
+    		default:	/** \brief we have an encountered an element type that is not yet handled **/
+    			std::cout << "element type " << elm_type << " is not yet implemented,skipping, sorry " << std::endl;
+
+    			skipline(file);		/** skip rest of line if element is unknown	**/
+    		    return;
+    	}
+
+
+
+
+
+
+
+
       // some data about gmsh elements
       const int nDofs[12]      = {-1, 2, 3, 4, 4, 8, 6, 5, 3, 6, -1, 10};
       const int nVertices[12]  = {-1, 2, 3, 4, 4, 8, 6, 5, 2, 3, -1, 4};
@@ -644,7 +831,7 @@ namespace Dune
   /**
      \ingroup Gmsh
 
-     \brief Read Gmsh mesh file
+     \brief Read Gmsh mesh file with curvilinear finite elements
 
      Read a .msh file generated using Gmsh and construct a grid using the grid factory interface.
 
@@ -658,11 +845,15 @@ namespace Dune
      are simply ignored.
    */
   template<typename GridType>
-  class GmshReader
+  class CurvilinearGmshReader
   {
   public:
     typedef GridType Grid;
 
+
+
+
+  public:
     /** \todo doc me */
     static Grid* read (const std::string& fileName, bool verbose = true, bool insert_boundary_segments=true)
     {
@@ -670,7 +861,7 @@ namespace Dune
       Dune::GridFactory<Grid> factory;
 
       // create parse object
-      GmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
+      CurvilinearGmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
       parser.read(fileName);
 
       return factory.createGrid();
@@ -686,7 +877,7 @@ namespace Dune
       Dune::GridFactory<Grid> factory;
 
       // create parse object
-      GmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
+      CurvilinearGmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
       parser.read(fileName);
 
       boundary_id_to_physical_entity.swap(parser.boundaryIdMap());
@@ -700,7 +891,7 @@ namespace Dune
                       bool verbose = true, bool insert_boundary_segments=true)
     {
       // create parse object
-      GmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
+    	CurvilinearGmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
       parser.read(fileName);
     }
 
@@ -710,18 +901,19 @@ namespace Dune
                       std::vector<int>& boundary_id_to_physical_entity,
                       std::vector<int>& element_index_to_physical_entity,
                       bool verbose = true, bool insert_boundary_segments=true)
-    {
-      // create parse object
-      GmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
-      parser.read(fileName);
+{
+	// create parse object
+	CurvilinearGmshReaderParser<Grid> parser(factory,verbose,insert_boundary_segments);
+	parser.read(fileName);
 
-      boundary_id_to_physical_entity.swap(parser.boundaryIdMap());
-      element_index_to_physical_entity.swap(parser.elementIndexMap());
-    }
+	boundary_id_to_physical_entity.swap(parser.boundaryIdMap());
+	element_index_to_physical_entity.swap(parser.elementIndexMap());
+}
+
   };
 
   /** \} */
 
 } // namespace Dune
 
-#endif
+#endif	/** DUNE_CURVILINEARGMSHREADER_HH **/
